@@ -28,17 +28,21 @@
         }
         constraint[name] = value;
     }
-    function disableAutogain(constraints) {
-        console.log("Automatically unsetting gain!", constraints);
+    function disableAudioProcessing(constraints) {
+        var disableConstraints = ['echoCancellation', 'googEchoCancellation', 'googAutoGainControl', 'googAutoGainControl2', 'googNoiseSuppression', 'googHighpassFilter', 'googTypingNoiseDetection'];
+        console.log("Automatically unsetting audio processing constraints!", constraints);
         if (constraints && constraints.audio) {
             if (typeof constraints.audio !== "object") {
                 constraints.audio = {};
             }
             if (constraints.audio.optional || constraints.audio.mandatory) {
-                setLegacyChromeConstraint(constraints.audio, "googAutoGainControl", false);
-                setLegacyChromeConstraint(constraints.audio, "googAutoGainControl2", false);
+                for (let disableConstraint of disableConstraints) {
+                    setLegacyChromeConstraint(constraints.audio, disableConstraint, false);
+                }
             } else {
-                setConstraint(constraints.audio, "autoGainControl", false);
+                for (let disableConstraint of disableConstraints) {
+                    setConstraint(constraints.audio, disableConstraint, false);
+                }
             }
         }
     }
@@ -52,13 +56,13 @@
 
     patchFunction(navigator.mediaDevices, "getUserMedia", function (original) {
         return function getUserMedia(constraints) {
-            disableAutogain(constraints);
+            disableAudioProcessing(constraints);
             return original.call(this, constraints);
         };
     });
     function patchDeprecatedGetUserMedia(original) {
         return function getUserMedia(constraints, success, error) {
-            disableAutogain(constraints);
+            disableAudioProcessing(constraints);
             return original.call(this, constraints, success, error);
         };
     }
@@ -67,12 +71,12 @@
     patchFunction(navigator, "webkitGetUserMedia", patchDeprecatedGetUserMedia);
     patchFunction(MediaStreamTrack.prototype, "applyConstraints", function (original) {
         return function applyConstraints(constraints) {
-            disableAutogain(constraints);
+            disableAudioProcessing(constraints);
             return original.call(this, constraints);
         };
     });
     console.log(
-        "Disable Autogain by Joey Watts!",
+        "Disable audio processing based on extension by Joey Watts!",
         navigator.mediaDevices.getUserMedia
     );
 })();
